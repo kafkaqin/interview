@@ -6,6 +6,7 @@ require (
 	k8s.io/api v0.31.1
 	k8s.io/apimachinery v0.31.1
 	k8s.io/client-go v0.31.1
+	k8s.io/kube-scheduler v0.31.1
 )
 
 require (

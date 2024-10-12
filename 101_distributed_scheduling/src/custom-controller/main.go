@@ -2,14 +2,15 @@ package main
 
 import (
 	"encoding/json"
+	"net/http"
+
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/klog"
-	schedulerapi "k8s.io/kubernetes/pkg/scheduler/apis/extender/v1"
-	"kubernetes/staging/src/k8s.io/client-go/rest"
-	"kubernetes/staging/src/k8s.io/client-go/tools/clientcmd"
-	"net/http"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
+	klog "k8s.io/klog/v2"
+	extenderv1 "k8s.io/kube-scheduler/extender/v1"
 )
 
 const (
@@ -21,20 +22,75 @@ type ScheduleExtender struct {
 	clientset *kubernetes.Clientset
 }
 
-func getWorkloadReplicas(pod *v1.Pod) int32 {
+func (s *ScheduleExtender) Filter(args extenderv1.ExtenderArgs) *extenderv1.ExtenderFilterResult {
+	pod := args.Pod
+	nodes := args.Nodes.Items
+
+	klog.V(3).Infof("Extender Filter called for pod: %s/%s", pod.Namespace, pod.Name)
+
+	var filteredNodes []v1.Node
+	workloadReplicas := getWorkloadReplicas(s.clientset, pod)
+
+	for _, node := range nodes {
+		if workloadReplicas == 1 {
+			if isOnDemandNode(&node) {
+				filteredNodes = append(filteredNodes, node)
+			}
+		} else {
+			filteredNodes = append(filteredNodes, node)
+		}
+	}
+
+	return &extenderv1.ExtenderFilterResult{
+		Nodes: &v1.NodeList{Items: filteredNodes},
+	}
+}
+
+func (s *ScheduleExtender) Prioritize(args extenderv1.ExtenderArgs) (*extenderv1.HostPriorityList, error) {
+	pod := args.Pod
+	nodes := args.Nodes.Items
+
+	klog.V(3).Infof("Extender Prioritize called for pod: %s/%s", pod.Namespace, pod.Name)
+
+	workloadReplicas := getWorkloadReplicas(s.clientset, pod)
+
+	var priorityList extenderv1.HostPriorityList
+	for _, node := range nodes {
+		score := 0
+		if isOnDemandNode(&node) {
+			score += 10
+		}
+		if workloadReplicas > 1 {
+			score -= getWorkloadPodsOnNode(s.clientset, pod, &node)
+		}
+		priorityList = append(priorityList, extenderv1.HostPriority{Host: node.Name, Score: int64(score)})
+	}
+
+	return &priorityList, nil
+}
+
+func getWorkloadReplicas(clientset *kubernetes.Clientset, pod *v1.Pod) int32 {
 	for _, ownerRef := range pod.OwnerReferences {
 		if ownerRef.Kind == "ReplicaSet" {
 			if ownerRef.Controller != nil && *ownerRef.Controller {
-				// Pod is controlled by a Deployment
-				deployment, err := clientset.AppsV1().Deployments(pod.Namespace).Get(ownerRef.Name, metav1.GetOptions{})
+				replicaSet, err := clientset.AppsV1().ReplicaSets(pod.Namespace).Get(ownerRef.Name, metav1.GetOptions{})
 				if err != nil {
-					klog.Errorf("Failed to get Deployment %s/%s: %v", pod.Namespace, ownerRef.Name, err)
+					klog.Errorf("Failed to get ReplicaSet %s/%s: %v", pod.Namespace, ownerRef.Name, err)
 					return 1
 				}
-				return *deployment.Spec.Replicas
+				if replicaSet.OwnerReferences != nil && len(replicaSet.OwnerReferences) > 0 {
+					owner := replicaSet.OwnerReferences[0]
+					if owner.Kind == "Deployment" {
+						deployment, err := clientset.AppsV1().Deployments(pod.Namespace).Get(owner.Name, metav1.GetOptions{})
+						if err != nil {
+							klog.Errorf("Failed to get Deployment %s/%s: %v", pod.Namespace, owner.Name, err)
+							return 1
+						}
+						return *deployment.Spec.Replicas
+					}
+				}
 			}
 		} else if ownerRef.Kind == "StatefulSet" {
-			// Pod is controlled by a StatefulSet
 			statefulSet, err := clientset.AppsV1().StatefulSets(pod.Namespace).Get(ownerRef.Name, metav1.GetOptions{})
 			if err != nil {
 				klog.Errorf("Failed to get StatefulSet %s/%s: %v", pod.Namespace, ownerRef.Name, err)
@@ -64,53 +120,6 @@ func getWorkloadPodsOnNode(clientset *kubernetes.Clientset, pod *v1.Pod, node *v
 	return len(pods.Items)
 }
 
-func (s *ScheduleExtender) Filter(args schedulerapi.ExtenderArgs) *schedulerapi.ExtenderFilterResult {
-	pod := args.Pod
-	nodes := args.Nodes.Items
-
-	klog.V(3).Infof("Extender Filter called for pod: %s/%s", pod.Namespace, pod.Name)
-
-	var filteredNodes []*v1.Node
-	workloadReplicas := getWorkloadReplicas(s.clientset, pod)
-
-	for _, node := range nodes {
-		if workloadReplicas == 1 {
-			if isOnDemandNode(&node) {
-				filteredNodes = append(filteredNodes, &node)
-			}
-		} else {
-			filteredNodes = append(filteredNodes, &node)
-		}
-	}
-
-	return &schedulerapi.ExtenderFilterResult{
-		Nodes: &v1.NodeList{Items: filteredNodes},
-	}
-}
-
-func (s *ScheduleExtender) Prioritize(args schedulerapi.ExtenderArgs) (*schedulerapi.HostPriorityList, error) {
-	pod := args.Pod
-	nodes := args.Nodes.Items
-
-	klog.V(3).Infof("Extender Prioritize called for pod: %s/%s", pod.Namespace, pod.Name)
-
-	workloadReplicas := getWorkloadReplicas(s.clientset, pod)
-
-	var priorityList schedulerapi.HostPriorityList
-	for _, node := range nodes {
-		score := 0
-		if isOnDemandNode(&node) {
-			score += 10
-		}
-		if workloadReplicas > 1 {
-			score -= getWorkloadPodsOnNode(s.clientset, pod, &node)
-		}
-		priorityList = append(priorityList, schedulerapi.HostPriority{Host: node.Name, Score: score})
-	}
-
-	return &priorityList, nil
-}
-
 func main() {
 	config, err := rest.InClusterConfig()
 	if err != nil {
@@ -130,7 +139,7 @@ func main() {
 	}
 
 	http.HandleFunc("/filter", func(w http.ResponseWriter, r *http.Request) {
-		var args schedulerapi.ExtenderArgs
+		var args extenderv1.ExtenderArgs
 		if err := json.NewDecoder(r.Body).Decode(&args); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
@@ -143,7 +152,7 @@ func main() {
 	})
 
 	http.HandleFunc("/prioritize", func(w http.ResponseWriter, r *http.Request) {
-		var args schedulerapi.ExtenderArgs
+		var args extenderv1.ExtenderArgs
 		if err := json.NewDecoder(r.Body).Decode(&args); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
