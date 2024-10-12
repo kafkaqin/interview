@@ -40,7 +40,9 @@ func (s *ScheduleExtender) Filter(args extenderv1.ExtenderArgs) *extenderv1.Exte
 				filteredNodes = append(filteredNodes, node)
 			}
 		} else {
-			filteredNodes = append(filteredNodes, node)
+			if isSpotNode(&node) {
+				filteredNodes = append(filteredNodes, node)
+			}
 		}
 	}
 	klog.InfoS("begin schedule filter", "filteredNodes", filteredNodes, "uuid", args.Pod.UID, "namespaces", args.Pod.Namespace)
@@ -61,6 +63,7 @@ func (s *ScheduleExtender) Prioritize(args extenderv1.ExtenderArgs) (*extenderv1
 	var priorityList extenderv1.HostPriorityList
 	for _, node := range nodes {
 		score := 0
+		//Filter on demand node will get high score
 		if isOnDemandNode(&node) {
 			score += 10
 		}
@@ -108,6 +111,11 @@ func getWorkloadReplicas(clientset *kubernetes.Clientset, pod *v1.Pod) int32 {
 
 func isOnDemandNode(node *v1.Node) bool {
 	_, ok := node.Labels[OnDemandNodeLabel]
+	return ok
+}
+
+func isSpotNode(node *v1.Node) bool {
+	_, ok := node.Labels[SpotNodeLabel]
 	return ok
 }
 
@@ -190,7 +198,9 @@ func main() {
 			w.Write(resultBody)
 		}
 	})
-
+	http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
 	klog.Info("Extender server started on port 8888")
 	if err := http.ListenAndServe(":8888", nil); err != nil {
 		klog.Fatalf("Failed to start extender server: %v", err)

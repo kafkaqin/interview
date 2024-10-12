@@ -828,3 +828,11 @@ func handleNodeUnavailability(clientset *kubernetes.Clientset, node *v1.Node) {
 
 This custom controller provides a mechanism to handle the unavailability of spot nodes by rescheduling affected pods onto available nodes, preferably on-demand nodes. This approach ensures that workloads remain running even if spot nodes are terminated, leveraging Kubernetes' native scheduling capabilities to achieve the desired behavior.
 
+```
+root@k8s-node:~# kubectl get nodes -owide 
+NAME           STATUS   ROLES           AGE    VERSION    INTERNAL-IP     EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION      CONTAINER-RUNTIME
+k8s-node       Ready    control-plane   20d    v1.28.14   192.168.1.102   <none>        Ubuntu 20.04.6 LTS   5.4.0-196-generic   containerd://1.7.12
+k8s-worker     Ready    <none>          2d1h   v1.28.14   192.168.1.103   <none>        Ubuntu 20.04.6 LTS   5.4.0-196-generic   containerd://1.7.12
+k8s-worker-2   Ready    <none>          41h    v1.28.14   192.168.1.105   <none>        Ubuntu 20.04.6 LTS   5.4.0-196-generic   containerd://1.7.12
+
+```
