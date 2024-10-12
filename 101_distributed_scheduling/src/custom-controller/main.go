@@ -1,10 +1,13 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -73,7 +76,7 @@ func getWorkloadReplicas(clientset *kubernetes.Clientset, pod *v1.Pod) int32 {
 	for _, ownerRef := range pod.OwnerReferences {
 		if ownerRef.Kind == "ReplicaSet" {
 			if ownerRef.Controller != nil && *ownerRef.Controller {
-				replicaSet, err := clientset.AppsV1().ReplicaSets(pod.Namespace).Get(ownerRef.Name, metav1.GetOptions{})
+				replicaSet, err := clientset.AppsV1().ReplicaSets(pod.Namespace).Get(context.Background(), ownerRef.Name, metav1.GetOptions{})
 				if err != nil {
 					klog.Errorf("Failed to get ReplicaSet %s/%s: %v", pod.Namespace, ownerRef.Name, err)
 					return 1
@@ -81,7 +84,7 @@ func getWorkloadReplicas(clientset *kubernetes.Clientset, pod *v1.Pod) int32 {
 				if replicaSet.OwnerReferences != nil && len(replicaSet.OwnerReferences) > 0 {
 					owner := replicaSet.OwnerReferences[0]
 					if owner.Kind == "Deployment" {
-						deployment, err := clientset.AppsV1().Deployments(pod.Namespace).Get(owner.Name, metav1.GetOptions{})
+						deployment, err := clientset.AppsV1().Deployments(pod.Namespace).Get(context.Background(), owner.Name, metav1.GetOptions{})
 						if err != nil {
 							klog.Errorf("Failed to get Deployment %s/%s: %v", pod.Namespace, owner.Name, err)
 							return 1
@@ -91,7 +94,7 @@ func getWorkloadReplicas(clientset *kubernetes.Clientset, pod *v1.Pod) int32 {
 				}
 			}
 		} else if ownerRef.Kind == "StatefulSet" {
-			statefulSet, err := clientset.AppsV1().StatefulSets(pod.Namespace).Get(ownerRef.Name, metav1.GetOptions{})
+			statefulSet, err := clientset.AppsV1().StatefulSets(pod.Namespace).Get(context.Background(), ownerRef.Name, metav1.GetOptions{})
 			if err != nil {
 				klog.Errorf("Failed to get StatefulSet %s/%s: %v", pod.Namespace, ownerRef.Name, err)
 				return 1
@@ -109,7 +112,7 @@ func isOnDemandNode(node *v1.Node) bool {
 
 func getWorkloadPodsOnNode(clientset *kubernetes.Clientset, pod *v1.Pod, node *v1.Node) int {
 	workloadSelector := labels.SelectorFromSet(pod.Labels)
-	pods, err := clientset.CoreV1().Pods(pod.Namespace).List(metav1.ListOptions{
+	pods, err := clientset.CoreV1().Pods(pod.Namespace).List(context.Background(), metav1.ListOptions{
 		FieldSelector: "spec.nodeName=" + node.Name,
 		LabelSelector: workloadSelector.String(),
 	})
@@ -123,7 +126,7 @@ func getWorkloadPodsOnNode(clientset *kubernetes.Clientset, pod *v1.Pod, node *v
 func main() {
 	config, err := rest.InClusterConfig()
 	if err != nil {
-		config, err = clientcmd.BuildConfigFromFlags("", "")
+		config, err = clientcmd.BuildConfigFromFlags("", "D:\\kubernetes\\kube-scheduler\\kube-schduler.conf")
 		if err != nil {
 			klog.Fatalf("Failed to get kubeconfig: %v", err)
 		}
@@ -139,6 +142,7 @@ func main() {
 	}
 
 	http.HandleFunc("/filter", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Println("=================filter:")
 		var args extenderv1.ExtenderArgs
 		if err := json.NewDecoder(r.Body).Decode(&args); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -152,6 +156,7 @@ func main() {
 	})
 
 	http.HandleFunc("/prioritize", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Println("=================prioritize:")
 		var args extenderv1.ExtenderArgs
 		if err := json.NewDecoder(r.Body).Decode(&args); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -174,3 +179,19 @@ func main() {
 		klog.Fatalf("Failed to start extender server: %v", err)
 	}
 }
+
+//apiVersion: kubescheduler.config.k8s.io/v1
+//kind: KubeSchedulerConfiguration
+//clientConnection:
+//kubeconfig: "/etc/kubernetes/scheduler.conf"
+//extenders:
+//- urlPrefix: "http://your-extender-service:8080"
+//filterVerb: "filter"
+//prioritizeVerb: "prioritize"
+//weight: 1
+//enableHTTPS: false
+//nodeCacheCapable: false
+//managedResources:
+//- name: "example.com/custom-resource"
+//ignoredByScheduler: true
+//ignorable: true

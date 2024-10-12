@@ -121,3 +121,70 @@ func isMultipleReplicaWorkload(pod *v1.Pod) bool {
     - Observe the scheduling decisions to ensure they align with the strategy.
 
 This implementation provides a basic framework for a scheduler extender that can be expanded with more sophisticated logic and error handling as needed.
+
+在使用 `kubeadm` 部署的 Kubernetes 集群中，默认的 kube-scheduler 是以静态 Pod 的形式运行的，其配置文件通常位于控制平面节点的 `/etc/kubernetes/manifests` 目录下。要配置 kube-scheduler 使用自定义的调度器扩展器（extender），你需要按照以下步骤进行操作：
+
+### 步骤
+
+1. **创建或更新调度器配置文件**：
+   - 在控制平面节点上创建一个新的调度器配置文件，例如 `/etc/kubernetes/scheduler-config.yaml`。
+
+   ```yaml
+   apiVersion: kubescheduler.config.k8s.io/v1
+   kind: KubeSchedulerConfiguration
+   clientConnection:
+     kubeconfig: "/etc/kubernetes/scheduler.conf"
+   extenders:
+     - urlPrefix: "http://your-extender-service:8080"
+       filterVerb: "filter"
+       prioritizeVerb: "prioritize"
+       weight: 1
+       enableHTTPS: false
+       nodeCacheCapable: false
+       managedResources:
+         - name: "example.com/custom-resource"
+           ignoredByScheduler: true
+       ignorable: true
+   ```
+
+   确保 `urlPrefix` 指向你的扩展器服务的正确地址。
+
+2. **修改 kube-scheduler 静态 Pod 配置**：
+   - 编辑 `/etc/kubernetes/manifests/kube-scheduler.yaml` 文件，添加或修改 `--config` 参数以指向新的调度器配置文件。
+
+   ```yaml
+   apiVersion: v1
+   kind: Pod
+   metadata:
+     creationTimestamp: null
+     labels:
+       component: kube-scheduler
+       tier: control-plane
+     name: kube-scheduler
+     namespace: kube-system
+   spec:
+     containers:
+     - command:
+       - kube-scheduler
+       - --config=/etc/kubernetes/scheduler-config.yaml
+       image: k8s.gcr.io/kube-scheduler:v1.22.0
+       ...
+   ```
+
+3. **保存并退出**：
+   - 保存对 `kube-scheduler.yaml` 的修改并退出编辑器。
+
+4. **自动重启 kube-scheduler**：
+   - 由于 kube-scheduler 是以静态 Pod 形式运行的，kubelet 会自动检测到配置文件的变化并重启 kube-scheduler。
+
+5. **验证配置**：
+   - 使用 `kubectl get pods -n kube-system` 查看 kube-scheduler 是否正常运行。
+   - 检查 kube-scheduler 的日志以确保它正确加载了新的配置并与扩展器进行交互。
+
+### 注意事项
+
+- 确保你的扩展器服务在 kube-scheduler 可以访问的网络位置运行。
+- 如果你的扩展器使用 HTTPS，请确保配置正确的证书和 `enableHTTPS: true`。
+- 在生产环境中进行更改之前，建议在测试环境中验证配置的正确性。
+
+通过这些步骤，你可以在使用 `kubeadm` 部署的 Kubernetes 集群中配置 kube-scheduler 使用自定义的调度器扩展器。
