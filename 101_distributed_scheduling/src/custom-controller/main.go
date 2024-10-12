@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"k8s.io/api/core/v1"
@@ -26,6 +25,7 @@ type ScheduleExtender struct {
 }
 
 func (s *ScheduleExtender) Filter(args extenderv1.ExtenderArgs) *extenderv1.ExtenderFilterResult {
+	klog.InfoS("begin schedule filter", "pod", args.Pod.Name, "uuid", args.Pod.UID, "namespaces", args.Pod.Namespace)
 	pod := args.Pod
 	nodes := args.Nodes.Items
 
@@ -43,13 +43,14 @@ func (s *ScheduleExtender) Filter(args extenderv1.ExtenderArgs) *extenderv1.Exte
 			filteredNodes = append(filteredNodes, node)
 		}
 	}
-
+	klog.InfoS("begin schedule filter", "filteredNodes", filteredNodes, "uuid", args.Pod.UID, "namespaces", args.Pod.Namespace)
 	return &extenderv1.ExtenderFilterResult{
 		Nodes: &v1.NodeList{Items: filteredNodes},
 	}
 }
 
 func (s *ScheduleExtender) Prioritize(args extenderv1.ExtenderArgs) (*extenderv1.HostPriorityList, error) {
+	klog.InfoS("begin schedule prioritize", "pod", args.Pod.Name, "uuid", args.Pod.UID, "namespaces", args.Pod.Namespace)
 	pod := args.Pod
 	nodes := args.Nodes.Items
 
@@ -68,7 +69,7 @@ func (s *ScheduleExtender) Prioritize(args extenderv1.ExtenderArgs) (*extenderv1
 		}
 		priorityList = append(priorityList, extenderv1.HostPriority{Host: node.Name, Score: int64(score)})
 	}
-
+	klog.InfoS("begin schedule Prioritize", "priorityList", priorityList, "uuid", args.Pod.UID, "namespaces", args.Pod.Namespace)
 	return &priorityList, nil
 }
 
@@ -126,7 +127,7 @@ func getWorkloadPodsOnNode(clientset *kubernetes.Clientset, pod *v1.Pod, node *v
 func main() {
 	config, err := rest.InClusterConfig()
 	if err != nil {
-		config, err = clientcmd.BuildConfigFromFlags("", "D:\\kubernetes\\kube-scheduler\\kube-schduler.conf")
+		config, err = clientcmd.BuildConfigFromFlags("", "/etc/kubernetes/scheduler.conf")
 		if err != nil {
 			klog.Fatalf("Failed to get kubeconfig: %v", err)
 		}
@@ -142,35 +143,51 @@ func main() {
 	}
 
 	http.HandleFunc("/filter", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("=================filter:")
+		klog.Infoln("Into Filter Route outer func")
 		var args extenderv1.ExtenderArgs
 		if err := json.NewDecoder(r.Body).Decode(&args); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		result := extender.Filter(args)
-		if err := json.NewEncoder(w).Encode(result); err != nil {
-			klog.Errorf("Failed to encode filter result: %v", err)
+		extenderFilterResult := extender.Filter(args)
+		if resultBody, err := json.Marshal(extenderFilterResult); err != nil {
+			klog.Errorf("Failed to marshal extenderFilterResult: %+v, %+v",
+				err, extenderFilterResult)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(err.Error()))
+		} else {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			w.Write(resultBody)
 		}
 	})
 
 	http.HandleFunc("/prioritize", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("=================prioritize:")
+		klog.Infoln("Into Prioritize Route outer func")
 		var args extenderv1.ExtenderArgs
 		if err := json.NewDecoder(r.Body).Decode(&args); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		result, err := extender.Prioritize(args)
+		extenderPrioritizeResult, err := extender.Prioritize(args)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		if err := json.NewEncoder(w).Encode(result); err != nil {
-			klog.Errorf("Failed to encode prioritize result: %v", err)
+		if resultBody, err := json.Marshal(extenderPrioritizeResult); err != nil {
+			klog.Errorf("Failed to marshal extenderPrioritizeResult: %+v, %+v",
+				err, extenderPrioritizeResult)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(err.Error()))
+		} else {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			w.Write(resultBody)
 		}
 	})
 
@@ -179,19 +196,3 @@ func main() {
 		klog.Fatalf("Failed to start extender server: %v", err)
 	}
 }
-
-//apiVersion: kubescheduler.config.k8s.io/v1
-//kind: KubeSchedulerConfiguration
-//clientConnection:
-//kubeconfig: "/etc/kubernetes/scheduler.conf"
-//extenders:
-//- urlPrefix: "http://your-extender-service:8080"
-//filterVerb: "filter"
-//prioritizeVerb: "prioritize"
-//weight: 1
-//enableHTTPS: false
-//nodeCacheCapable: false
-//managedResources:
-//- name: "example.com/custom-resource"
-//ignoredByScheduler: true
-//ignorable: true
