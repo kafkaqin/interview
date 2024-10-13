@@ -75,81 +75,82 @@ Below is a basic implementation of a Kubernetes scheduler extender using Go. Thi
       clientConnection:
         kubeconfig: /etc/kubernetes/scheduler.conf
    ```
+
     Make sure this file is saved at /etc/kubernetes/kube-scheduler-config.yaml.
 
      - 3.2.2. Modify the kube-scheduler Static Pod Configuration:
      Edit the `/etc/kubernetes/manifests/kube-scheduler.yaml` file, adding or modifying the `--config` parameter to point to the new scheduler configuration file.
-     
+
 
    ```yaml
-  apiVersion: v1
-  kind: Pod
-  metadata:
-    creationTimestamp: null
-    labels:
-      component: kube-scheduler
-      tier: control-plane
-    name: kube-scheduler
-    namespace: kube-system
-  spec:
-    containers:
-      - command:
-          - kube-scheduler
-          - --authentication-kubeconfig=/etc/kubernetes/scheduler.conf
-          - --authorization-kubeconfig=/etc/kubernetes/scheduler.conf
-          - --bind-address=127.0.0.1
-          - --kubeconfig=/etc/kubernetes/scheduler.conf
-          - --leader-elect=true
-          - --config=/etc/kubernetes/kube-scheduler-config.yaml
-        image: registry.cn-hangzhou.aliyuncs.com/google_containers/kube-scheduler:v1.28.0
-        imagePullPolicy: IfNotPresent
-        livenessProbe:
-          failureThreshold: 8
-          httpGet:
-            host: 127.0.0.1
-            path: /healthz
-            port: 10259
-            scheme: HTTPS
-          initialDelaySeconds: 10
-          periodSeconds: 10
-          timeoutSeconds: 15
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        creationTimestamp: null
+        labels:
+          component: kube-scheduler
+          tier: control-plane
         name: kube-scheduler
-        resources:
-          requests:
-            cpu: 100m
-        startupProbe:
-          failureThreshold: 24
-          httpGet:
-            host: 127.0.0.1
-            path: /healthz
-            port: 10259
-            scheme: HTTPS
-          initialDelaySeconds: 10
-          periodSeconds: 10
-          timeoutSeconds: 15
-        volumeMounts:
-          - mountPath: /etc/kubernetes/scheduler.conf
+        namespace: kube-system
+      spec:
+        containers:
+          - command:
+              - kube-scheduler
+              - --authentication-kubeconfig=/etc/kubernetes/scheduler.conf
+              - --authorization-kubeconfig=/etc/kubernetes/scheduler.conf
+              - --bind-address=127.0.0.1
+              - --kubeconfig=/etc/kubernetes/scheduler.conf
+              - --leader-elect=true
+              - --config=/etc/kubernetes/kube-scheduler-config.yaml
+            image: registry.cn-hangzhou.aliyuncs.com/google_containers/kube-scheduler:v1.28.0
+            imagePullPolicy: IfNotPresent
+            livenessProbe:
+              failureThreshold: 8
+              httpGet:
+                host: 127.0.0.1
+                path: /healthz
+                port: 10259
+                scheme: HTTPS
+              initialDelaySeconds: 10
+              periodSeconds: 10
+              timeoutSeconds: 15
+            name: kube-scheduler
+            resources:
+              requests:
+                cpu: 100m
+            startupProbe:
+              failureThreshold: 24
+              httpGet:
+                host: 127.0.0.1
+                path: /healthz
+                port: 10259
+                scheme: HTTPS
+              initialDelaySeconds: 10
+              periodSeconds: 10
+              timeoutSeconds: 15
+            volumeMounts:
+              - mountPath: /etc/kubernetes/scheduler.conf
+                name: kubeconfig
+                readOnly: true
+              - mountPath: /etc/kubernetes/kube-scheduler-config.yaml
+                name: kube-scheduler-config-volume
+                readOnly: true
+        hostNetwork: true
+        priority: 2000001000
+        priorityClassName: system-node-critical
+        securityContext:
+          seccompProfile:
+            type: RuntimeDefault
+        volumes:
+          - hostPath:
+              path: /etc/kubernetes/scheduler.conf
+              type: FileOrCreate
             name: kubeconfig
-            readOnly: true
-          - mountPath: /etc/kubernetes/kube-scheduler-config.yaml
-            name: kube-scheduler-config-volume
-            readOnly: true
-    hostNetwork: true
-    priority: 2000001000
-    priorityClassName: system-node-critical
-    securityContext:
-      seccompProfile:
-        type: RuntimeDefault
-    volumes:
-      - hostPath:
-          path: /etc/kubernetes/scheduler.conf
-          type: FileOrCreate
-        name: kubeconfig
-      - name: kube-scheduler-config-volume
-        hostPath:
-          path: /etc/kubernetes/kube-scheduler-config.yaml
-          type: FileOrCreate
-  status: {}
+          - name: kube-scheduler-config-volume
+            hostPath:
+              path: /etc/kubernetes/kube-scheduler-config.yaml
+              type: FileOrCreate
+      status: {}
    ```
 
  - 3.2.3. Save and Exit:
