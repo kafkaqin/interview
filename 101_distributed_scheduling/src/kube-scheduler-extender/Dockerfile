@@ -1,12 +1,7 @@
-# 使用 Go 1.22.6 作为基础镜像进行编译
-FROM golang:1.23-alpine3.19 AS builder
+FROM golang:1.22-alpine3.19 AS builder
 
 # 设置工作目录
 WORKDIR /app
-
-# 复制 Go 模块文件并下载依赖项
-COPY go.mod go.sum ./
-RUN go mod download
 
 # 复制应用程序源代码
 COPY . .

@@ -33,6 +33,8 @@ Below is a basic implementation of a Kubernetes scheduler extender using Go. Thi
 1. **Build and Deploy the Extender**:
     - Compile the Go program and create a Docker image(Note that Docker needs to be installed.).
     ```
+    git clone https://github.com/kafkaqin/interview.git;
+    cd interview/101_distributed_scheduling/src/custom-controller
     docker build -t scheduler-extender:1.0 .
     ```
     - Deploy the extender as a service in your Kubernetes cluster.
