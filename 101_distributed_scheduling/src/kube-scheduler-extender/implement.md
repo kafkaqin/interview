@@ -193,7 +193,8 @@ Below is a basic implementation of a Kubernetes scheduler extender using Go. Thi
     3.3 ***Deploy workloads with labels indicating single or multiple replicas.***
 
     ```
-      kubectl apply -f kube-scheduler/deployment.yaml
+      kubectl apply -f kube-scheduler/deployment-nginx-single.yaml
+      kubectl apply -f kube-scheduler/deployment-nginx-multiple.yaml
     ```
 
     3.4 ***Observe the scheduling decisions to ensure they align with the strategy.***
