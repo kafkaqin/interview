@@ -35,7 +35,7 @@ Below is a basic implementation of a Kubernetes scheduler extender using Go. Thi
     ```
     git clone https://github.com/kafkaqin/interview.git;
     cd interview/101_distributed_scheduling/src/custom-controller
-    docker build -t scheduler-extender:1.0 .
+    docker build -t spot-scheduler-extender:v1 .
     ```
     - Deploy the extender as a service in your Kubernetes cluster.
     ```shell
@@ -46,7 +46,8 @@ Below is a basic implementation of a Kubernetes scheduler extender using Go. Thi
     - Modify the scheduler configuration to include the extender by updating the `scheduler-config.yaml` to point to the extender service.
 
 3. **Testing**:
-    - The cluster was deployed using kubeadm. The detailed cluster information is as follows:
+    3.1 ***Cluster environment information***
+    - The cluster was deployed using kubeadm. The detailed cluster information is as follows:***
     ```
       root@k8s-node:~# kubectl get nodes -owide 
       NAME           STATUS   ROLES           AGE    VERSION    INTERNAL-IP     EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION      CONTAINER-RUNTIME
@@ -54,8 +55,9 @@ Below is a basic implementation of a Kubernetes scheduler extender using Go. Thi
       k8s-worker     Ready    <none>          2d1h   v1.28.14   192.168.1.103   <none>        Ubuntu 20.04.6 LTS   5.4.0-196-generic   containerd://1.7.12
       k8s-worker-2   Ready    <none>          41h    v1.28.14   192.168.1.105   <none>        Ubuntu 20.04.6 LTS   5.4.0-196-generic   containerd://1.7.12
     ```
-    - In a Kubernetes cluster deployed using kubeadm, the default kube-scheduler runs as a static Pod. Its manifest file is typically located in the /etc/kubernetes/manifests directory on the control plane node. To configure kube-scheduler to use a custom scheduler extender, follow these steps:
-    Create a new scheduler configuration file on the control plane node, such as /etc/kubernetes/kube-scheduler-config.yaml. The content of the file is as follows:
+    3.2 ***Modify the kube-scheduler configuration file***
+     In a Kubernetes cluster deployed using kubeadm, the default kube-scheduler runs as a static Pod. Its manifest file is typically located in the /etc/kubernetes/manifests directory on the control plane node. To configure kube-scheduler to use a custom scheduler extender, follow these steps:
+    - 3.2.1. Create a new scheduler configuration file on the control plane node, such as /etc/kubernetes/kube-scheduler-config.yaml. The content of the file is as follows:
     ```yaml
   apiVersion: kubescheduler.config.k8s.io/v1
   kind: KubeSchedulerConfiguration
@@ -71,8 +73,8 @@ Below is a basic implementation of a Kubernetes scheduler extender using Go. Thi
     kubeconfig: /etc/kubernetes/scheduler.conf
    ```
   Make sure this file is saved at /etc/kubernetes/kube-scheduler-config.yaml.
-  2. **Modify the kube-scheduler Static Pod Configuration**:
-- Edit the `/etc/kubernetes/manifests/kube-scheduler.yaml` file, adding or modifying the `--config` parameter to point to the new scheduler configuration file.
+   - 3.2.2. Modify the kube-scheduler Static Pod Configuration:
+     Edit the `/etc/kubernetes/manifests/kube-scheduler.yaml` file, adding or modifying the `--config` parameter to point to the new scheduler configuration file.
 
    ```yaml
   apiVersion: v1
@@ -144,16 +146,19 @@ Below is a basic implementation of a Kubernetes scheduler extender using Go. Thi
           type: FileOrCreate
   status: {}
    ```
+ - 3.2.1. Save and Exit:
+   - Save the changes to the `kube-scheduler.yaml` file and exit the editor.
 
-3. **保存并退出**：
-   - 保存对 `kube-scheduler.yaml` 的修改并退出编辑器。
+ - 3.2.4. Automatically Restart kube-scheduler:
+   - Since kube-scheduler runs as a static Pod, kubelet will automatically detect the changes in the configuration file and restart kube-scheduler.
 
-4. **自动重启 kube-scheduler**：
-   - 由于 kube-scheduler 是以静态 Pod 形式运行的，kubelet 会自动检测到配置文件的变化并重启 kube-scheduler。
+  - 3.2.1.5. Verify Configuration:
+  - Use `kubectl get pods -n kube-system` to check if kube-scheduler is running properly.
+  - Check the logs of kube-scheduler to ensure it has correctly loaded the new configuration and is interacting with the extender.
 
-5. **验证配置**：
-   - 使用 `kubectl get pods -n kube-system` 查看 kube-scheduler 是否正常运行。
-   - 检查 kube-scheduler 的日志以确保它正确加载了新的配置并与扩展器进行交互。
+```bash
+kubectl logs <kube-scheduler-pod-name> -n kube-system
+```
 
 
     - Deploy workloads with labels indicating single or multiple replicas.
