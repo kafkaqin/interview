@@ -82,6 +82,7 @@ spec:
         image: spot-scheduler-extender:v1
         ports:
         - containerPort: 8888
+          name: http
         imagePullPolicy: IfNotPresent
         readinessProbe:
           failureThreshold: 1
