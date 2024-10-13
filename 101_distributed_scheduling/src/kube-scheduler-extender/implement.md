@@ -40,6 +40,29 @@ Below is a basic implementation of a Kubernetes scheduler extender using Go. Thi
     - Deploy the extender as a service in your Kubernetes cluster.
     ```shell
     kubectl apply -f kube-scheduler/deployment.yaml
+
+        root@k8s-node:~# kubectl apply -f  sche.yaml
+        serviceaccount/spot-scheduler-extender created
+        clusterrolebinding.rbac.authorization.k8s.io/read-pods-global created
+        configmap/kube-scheduler-config configured
+        deployment.apps/spot-scheduler-extender created
+        service/spot-scheduler-extender created
+        root@k8s-node:~# kubectl get pod -n kube-system 
+        NAME                                       READY   STATUS    RESTARTS         AGE
+        calico-kube-controllers-5d8897fdb6-29cfp   1/1     Running   25 (3h46m ago)   20d
+        calico-node-chls9                          1/1     Running   4 (3h46m ago)    2d2h
+        calico-node-gzdd7                          1/1     Running   6 (3h46m ago)    2d2h
+        calico-node-ng2qr                          1/1     Running   20 (3h46m ago)   20d
+        coredns-6554b8b87f-4lhdj                   1/1     Running   20 (3h46m ago)   20d
+        coredns-6554b8b87f-vpv7b                   1/1     Running   20 (3h46m ago)   20d
+        etcd-k8s-node                              1/1     Running   21 (3h46m ago)   20d
+        kube-apiserver-k8s-node                    1/1     Running   22 (3h46m ago)   20d
+        kube-controller-manager-k8s-node           1/1     Running   22 (3h46m ago)   20d
+        kube-proxy-khm9q                           1/1     Running   4 (3h46m ago)    2d2h
+        kube-proxy-p6d64                           1/1     Running   20 (3h46m ago)   20d
+        kube-proxy-qrq6c                           1/1     Running   3 (3h46m ago)    2d2h
+        kube-scheduler-k8s-node                    1/1     Running   0                138m
+        spot-scheduler-extender-5b84885d65-629cv   1/1     Running   0                14s
     ```
 
 2. **Configure the Scheduler**:
@@ -168,5 +191,9 @@ Below is a basic implementation of a Kubernetes scheduler extender using Go. Thi
     ```
 
     3.3 ***Deploy workloads with labels indicating single or multiple replicas.***
+
+    ```
+      kubectl apply -f kube-scheduler/deployment.yaml
+    ```
 
     3.4 ***Observe the scheduling decisions to ensure they align with the strategy.***
