@@ -26,7 +26,7 @@ The goal is to design a distributed scheduling strategy that maximizes the use o
 
 Below is a basic implementation of a Kubernetes scheduler extender using Go. This implementation assumes you have a basic understanding of Kubernetes and Go programming.
 
-![Please refer to the file for the code implementation.](./main.go)
+[Please refer to the file for the code implementation.](./main.go)
 
 ### Deployment
 

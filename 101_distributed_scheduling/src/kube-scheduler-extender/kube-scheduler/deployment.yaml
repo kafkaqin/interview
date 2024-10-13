@@ -68,14 +68,14 @@ spec:
                   - key: node.kubernetes.io/capacity
                     operator: In
                     values:
-                      - spot
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-              - matchExpressions:
-                  - key: node.kubernetes.io/capacity
-                    operator: In
-                    values:
                       - on-demand
+          # requiredDuringSchedulingIgnoredDuringExecution:
+          #   nodeSelectorTerms:
+          #     - matchExpressions:
+          #         - key: node.kubernetes.io/capacity
+          #           operator: In
+          #           values:
+          #             - on-demand
       containers:
       - name: extender
         image: spot-scheduler-extender:v1
