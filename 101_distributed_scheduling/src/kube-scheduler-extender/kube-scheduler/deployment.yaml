@@ -76,6 +76,7 @@ spec:
           #           operator: In
           #           values:
           #             - on-demand
+#      hostNetwork: true
       containers:
       - name: extender
         image: spot-scheduler-extender:v1
@@ -116,4 +117,5 @@ spec:
   ports:
   - port: 80
     targetPort: 8888
-
+    protocol: TCP
+    name: http
