@@ -79,6 +79,7 @@ Below is a basic implementation of a Kubernetes scheduler extender using Go. Thi
 
      - 3.2.2. Modify the kube-scheduler Static Pod Configuration:
      Edit the `/etc/kubernetes/manifests/kube-scheduler.yaml` file, adding or modifying the `--config` parameter to point to the new scheduler configuration file.
+     
 
    ```yaml
   apiVersion: v1
@@ -150,6 +151,7 @@ Below is a basic implementation of a Kubernetes scheduler extender using Go. Thi
           type: FileOrCreate
   status: {}
    ```
+
  - 3.2.3. Save and Exit:
    - Save the changes to the `kube-scheduler.yaml` file and exit the editor.
 
