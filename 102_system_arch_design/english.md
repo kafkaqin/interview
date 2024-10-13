@@ -150,4 +150,4 @@ Certainly! Below is a more detailed architecture design for the system, focusing
 
 This detailed architecture design leverages Kubernetes and cloud-native technologies to build a system that is highly available, secure, and performant. By using best practices such as autoscaling, secure communication, and centralized monitoring, the system can efficiently handle customer metrics and provide valuable optimization recommendations. This design ensures resilience, scalability, and security, meeting the needs of both the service provider and the customers.
 
-[degisn](./img/design.png)
+![degisn](./img/design.png)
