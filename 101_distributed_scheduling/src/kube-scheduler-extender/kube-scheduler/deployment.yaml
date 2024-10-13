@@ -108,6 +108,8 @@ kind: Service
 metadata:
   name: spot-scheduler-extender
   namespace: kube-system
+  labels:
+    app: spot-scheduler-extender
 spec:
   selector:
     app: spot-scheduler-extender
