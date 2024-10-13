@@ -46,6 +46,7 @@ Below is a basic implementation of a Kubernetes scheduler extender using Go. Thi
     - Modify the scheduler configuration to include the extender by updating the `scheduler-config.yaml` to point to the extender service.
 
 3. **Testing**:
+
     3.1 ***Cluster environment information***
     - The cluster was deployed using kubeadm. The detailed cluster information is as follows:***
     ```
@@ -56,22 +57,24 @@ Below is a basic implementation of a Kubernetes scheduler extender using Go. Thi
       k8s-worker-2   Ready    <none>          41h    v1.28.14   192.168.1.105   <none>        Ubuntu 20.04.6 LTS   5.4.0-196-generic   containerd://1.7.12
     ```
     3.2 ***Modify the kube-scheduler configuration file***
-     In a Kubernetes cluster deployed using kubeadm, the default kube-scheduler runs as a static Pod. Its manifest file is typically located in the /etc/kubernetes/manifests directory on the control plane node. To configure kube-scheduler to use a custom scheduler extender, follow these steps:
+     - In a Kubernetes cluster deployed using kubeadm, the default kube-scheduler runs as a static Pod. Its manifest file is typically located in the /etc/kubernetes/manifests directory on the control plane node. To configure kube-scheduler to use a custom scheduler extender, follow these steps:
     - 3.2.1. Create a new scheduler configuration file on the control plane node, such as /etc/kubernetes/kube-scheduler-config.yaml. The content of the file is as follows:
+
     ```yaml
-  apiVersion: kubescheduler.config.k8s.io/v1
-  kind: KubeSchedulerConfiguration
-  extenders:
-    - urlPrefix: "http://spot-scheduler-extender.kube-system.svc.cluster.local"
-      filterVerb: "filter"
-      prioritizeVerb: "prioritize"
-      weight: 1
-      enableHTTPS: false
-      nodeCacheCapable: false
-      ignorable: true
-  clientConnection:
-    kubeconfig: /etc/kubernetes/scheduler.conf
+      apiVersion: kubescheduler.config.k8s.io/v1
+      kind: KubeSchedulerConfiguration
+      extenders:
+        - urlPrefix: "http://spot-scheduler-extender.kube-system.svc.cluster.local"
+          filterVerb: "filter"
+          prioritizeVerb: "prioritize"
+          weight: 1
+          enableHTTPS: false
+          nodeCacheCapable: false
+          ignorable: true
+      clientConnection:
+        kubeconfig: /etc/kubernetes/scheduler.conf
    ```
+
   Make sure this file is saved at /etc/kubernetes/kube-scheduler-config.yaml.
    - 3.2.2. Modify the kube-scheduler Static Pod Configuration:
      Edit the `/etc/kubernetes/manifests/kube-scheduler.yaml` file, adding or modifying the `--config` parameter to point to the new scheduler configuration file.
