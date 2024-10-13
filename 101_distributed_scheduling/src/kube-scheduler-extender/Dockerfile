@@ -1,5 +1,5 @@
 # 使用 Go 1.22.6 作为基础镜像进行编译
-FROM golang:1.22.6 AS builder
+FROM golang:1.23-alpine3.19 AS builder
 
 # 设置工作目录
 WORKDIR /app
@@ -15,7 +15,7 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /scheduler-extender .
 
 # 使用轻量级的运行时镜像
-FROM alpine:3.18
+FROM alpine:3.19
 
 # 安装 ca-certificates 以支持 HTTPS
 # RUN apk --no-cache add ca-certificates
