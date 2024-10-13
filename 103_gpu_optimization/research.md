@@ -3,7 +3,7 @@ Reducing the cost of GPUs for training and inference in the AI world, especially
 ### Optimizing GPU Usage
 
 1. **Dynamic GPU Allocation**:
-    - Implement a dynamic GPU allocation system that adjusts the number of GPUs allocated to a job based on real-time demand and workload characteristics. This can be achieved using Kubernetes' custom resource definitions (CRDs) and operators to manage GPU resources more efficiently.
+    - Implement a dynamic GPU allocation system that adjusts the number of GPUs allocated to a job based on real-time demand and workload characteristics. This can be achieved using Kubernetes' custom resource definitions (CRDs) and operators to manage GPU resources more efficiently. example: TKE+vCUDA+GPUManager
 
 2. **Spot Instances and Preemptible VMs**:
     - Utilize spot instances or preemptible VMs for non-critical training jobs. These instances are significantly cheaper and can be managed using Kubernetes' node affinity and taints/tolerations to ensure workloads are scheduled appropriately.
@@ -51,43 +51,6 @@ Reducing the cost of GPUs for training and inference in the AI world, especially
     - Deploy monitoring tools like Prometheus and Grafana to gain insights into resource usage and identify optimization opportunities. Use these insights to adjust configurations and improve efficiency.
 
 By integrating these strategies and leveraging open-source projects, organizations can significantly reduce the cost of GPU usage for AI workloads in a Kubernetes environment on the public cloud. These approaches require a combination of technical expertise, strategic planning, and continuous monitoring to achieve optimal results.
-
-
-
-
-作为一名GPU专家，我可以告诉你，目前GPU优化技术涵盖了多个方面，以提高性能、效率和能耗管理。以下是一些主要的GPU优化技术：
-
-1. **并行计算优化**：
-    - **线程级并行**：利用大量并行线程来提高计算效率。
-    - **块级并行**：通过合理划分线程块，优化资源利用。
-    - **SIMD（单指令多数据）**：在单个指令周期内处理多个数据点。
-
-2. **内存优化**：
-    - **共享内存使用**：利用GPU的共享内存来减少全局内存访问延迟。
-    - **内存对齐和合并访问**：确保内存访问是对齐的，以提高带宽利用率。
-    - **缓存优化**：利用L1和L2缓存来减少内存访问延迟。
-
-3. **指令优化**：
-    - **指令流水线**：优化指令执行顺序以减少停顿。
-    - **分支预测和规避**：减少分支指令带来的性能损失。
-
-4. **能耗优化**：
-    - **动态电压和频率调节（DVFS）**：根据负载动态调整GPU的电压和频率。
-    - **电源门控**：在不使用某些GPU单元时关闭电源以节省能耗。
-
-5. **算法优化**：
-    - **数值精度调整**：在不影响结果的情况下使用低精度计算以提高性能。
-    - **数据局部性优化**：重构算法以提高数据局部性，从而减少内存访问延迟。
-
-6. **编译器优化**：
-    - **自动向量化**：编译器自动将代码转换为向量化指令。
-    - **内联展开**：减少函数调用开销。
-
-7. **硬件架构优化**：
-    - **专用加速器**：如Tensor Cores，用于加速特定类型的计算（如深度学习）。
-    - **多GPU协作**：通过多GPU并行处理来提高计算能力。
-
-这些技术通常结合使用，以最大化GPU的性能和效率。具体的优化策略可能会根据应用场景和硬件架构的不同而有所调整。
 
 
 
@@ -167,3 +130,34 @@ In the AI-driven world, optimizing GPU usage for training and inference is cruci
 
 By implementing these strategies, organizations can significantly reduce GPU costs and optimize resource usage in the public cloud. Leveraging Kubernetes' capabilities and integrating open-source projects can lead to innovative solutions that enhance efficiency and scalability in AI workloads. This approach not only reduces costs but also improves the overall performance and agility of AI systems.
 
+## Generally Speaking
+![optimization layering](./img/gpu-opt.png)
+
+### Magnum IO
+Magnum IO was proposed by NVIDIA. It is a set of efficient data center I/O technologies designed to accelerate data transfer between GPUs and storage devices, optimizing workloads for large-scale parallel computing and high-performance computing (HPC). The theory behind Magnum IO was introduced to improve communication efficiency between GPUs and between GPUs and storage devices in data-intensive applications, thereby enhancing overall system performance.
+
+#### storage service
+ceph Swift minio HDFS 预加载的有aluxio
+
+### Network Layer
+RDMA(kernel bypass,CPU bypass): RoCEv1 ROCEv2 IB
+
+Communication within the same node: NVLink  
+Communication between different nodes: NSwitch + IB (RoCEv1, RoCEv2)
+
+### GPU virtualization technology
+#### User Mode：
+ - vCUDA remoteAPI
+#### Kernel Mode(driver):
+- OrionX vGPU
+- TKE GPUManage + vCUDA remote api (time division multiplexing)
+- alibaba cGPU  eGPU
+- Tencent Public Cloud qGPU
+- [4paradigm HAMI](http://www.4paradigm.com/)
+#### hardware:
+- nvidia MIG
+- AMD SRIOV
+- intel GVT-G
+
+#### parallel computing
+nccl mpi gloo
