@@ -57,8 +57,9 @@ Below is a basic implementation of a Kubernetes scheduler extender using Go. Thi
       k8s-worker-2   Ready    <none>          41h    v1.28.14   192.168.1.105   <none>        Ubuntu 20.04.6 LTS   5.4.0-196-generic   containerd://1.7.12
     ```
     3.2 ***Modify the kube-scheduler configuration file***
+
      - In a Kubernetes cluster deployed using kubeadm, the default kube-scheduler runs as a static Pod. Its manifest file is typically located in the /etc/kubernetes/manifests directory on the control plane node. To configure kube-scheduler to use a custom scheduler extender, follow these steps:
-    - 3.2.1. Create a new scheduler configuration file on the control plane node, such as /etc/kubernetes/kube-scheduler-config.yaml. The content of the file is as follows:
+     - 3.2.1. Create a new scheduler configuration file on the control plane node, such as /etc/kubernetes/kube-scheduler-config.yaml. The content of the file is as follows:
 
     ```yaml
       apiVersion: kubescheduler.config.k8s.io/v1
@@ -74,9 +75,9 @@ Below is a basic implementation of a Kubernetes scheduler extender using Go. Thi
       clientConnection:
         kubeconfig: /etc/kubernetes/scheduler.conf
    ```
+    Make sure this file is saved at /etc/kubernetes/kube-scheduler-config.yaml.
 
-  Make sure this file is saved at /etc/kubernetes/kube-scheduler-config.yaml.
-   - 3.2.2. Modify the kube-scheduler Static Pod Configuration:
+     - 3.2.2. Modify the kube-scheduler Static Pod Configuration:
      Edit the `/etc/kubernetes/manifests/kube-scheduler.yaml` file, adding or modifying the `--config` parameter to point to the new scheduler configuration file.
 
    ```yaml
@@ -149,7 +150,7 @@ Below is a basic implementation of a Kubernetes scheduler extender using Go. Thi
           type: FileOrCreate
   status: {}
    ```
- - 3.2.1. Save and Exit:
+ - 3.2.3. Save and Exit:
    - Save the changes to the `kube-scheduler.yaml` file and exit the editor.
 
  - 3.2.4. Automatically Restart kube-scheduler:
@@ -163,6 +164,5 @@ Below is a basic implementation of a Kubernetes scheduler extender using Go. Thi
 kubectl logs <kube-scheduler-pod-name> -n kube-system
 ```
 
-
-    - Deploy workloads with labels indicating single or multiple replicas.
-    - Observe the scheduling decisions to ensure they align with the strategy.
+    3.3 ***Deploy workloads with labels indicating single or multiple replicas.***
+    3.4 ***Observe the scheduling decisions to ensure they align with the strategy.***
