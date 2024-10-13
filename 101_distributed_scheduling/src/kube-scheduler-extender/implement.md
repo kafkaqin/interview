@@ -37,7 +37,7 @@ Below is a basic implementation of a Kubernetes scheduler extender using Go. Thi
     ```
     - Deploy the extender as a service in your Kubernetes cluster.
     ```shell
-    kubectl apply -f deployment.yaml
+    kubectl apply -f kube-scheduler/deployment.yaml
     ```
 
 2. **Configure the Scheduler**:
