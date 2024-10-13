@@ -159,13 +159,14 @@ Below is a basic implementation of a Kubernetes scheduler extender using Go. Thi
  - 3.2.4. Automatically Restart kube-scheduler:
    - Since kube-scheduler runs as a static Pod, kubelet will automatically detect the changes in the configuration file and restart kube-scheduler.
 
-  - 3.2.1.5. Verify Configuration:
+  - 3.2.5. Verify Configuration:
   - Use `kubectl get pods -n kube-system` to check if kube-scheduler is running properly.
   - Check the logs of kube-scheduler to ensure it has correctly loaded the new configuration and is interacting with the extender.
 
-```bash
-kubectl logs <kube-scheduler-pod-name> -n kube-system
-```
+    ```bash
+        kubectl logs <kube-scheduler-pod-name> -n kube-system
+    ```
 
     3.3 ***Deploy workloads with labels indicating single or multiple replicas.***
+
     3.4 ***Observe the scheduling decisions to ensure they align with the strategy.***
