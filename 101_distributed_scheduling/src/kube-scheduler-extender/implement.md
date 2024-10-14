@@ -193,6 +193,8 @@ Below is a basic implementation of a Kubernetes scheduler extender using Go. Thi
     3.3 ***Deploy workloads with labels indicating single or multiple replicas.***
 
     ```
+      kubectl label nodeName node.kubernetes.io/capacity=on-demand
+      kubectl label nodeName node.kubernetes.io/capacity=spot
       kubectl apply -f kube-scheduler/deployment-nginx-single.yaml
       kubectl apply -f kube-scheduler/deployment-nginx-multiple.yaml
     ```
